@@ -19,6 +19,8 @@ class AssetsLibraryList extends AssetLibrary {
 	public var transLib:TranslatedAssetLibrary;
 	#end
 
+	private var cachePaths:Map<String, AssetLibrary> = [];
+
 	public function removeLibrary(lib:AssetLibrary) {
 		if (lib != null) {
 			libraries.remove(lib);
@@ -42,9 +44,17 @@ class AssetsLibraryList extends AssetLibrary {
 	public function existsSpecific(id:String, type:String, source:AssetSource = BOTH) {
 		if (!id.startsWith("assets/") && existsSpecific('assets/$id', type, source))
 			return true;
+
+		// There's a mod that heavily relies on addons and that can causes lags just to get a path.
+		if (cachePaths.exists(id)) {
+			if (cachePaths.get(id).exists(id, type)) return true;
+			else cachePaths.remove(id);
+		}
+
 		for(k=>l in libraries) {
 			if (shouldSkipLib(l, source)) continue;
 			if (l.exists(id, type)) {
+				cachePaths.set(id, l);
 				return true;
 			}
 		}
@@ -186,6 +196,7 @@ class AssetsLibraryList extends AssetLibrary {
 	public function reset() {
 		unloadLibraries();
 
+		cachePaths.clear();
 		libraries = [];
 
 		// adds default libraries in again
